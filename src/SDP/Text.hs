@@ -22,6 +22,8 @@ import Data.Text.Internal ( Text  (..) )
 
 import qualified Data.Text as T
 
+import Data.Text.Internal.Fusion ( Stream (..), Step (..), stream )
+
 import Data.Maybe
 import Data.Bits
 import Data.Char
@@ -141,6 +143,29 @@ instance Indexed Text Int Char
     
     (*$) = undefined
 
+instance IFold Text Int Char
+  where
+    ifoldr f base = fold' . stream
+      where
+        fold' (Stream nxt s0 _) = go 0 s0
+            where
+              go !i !s = case nxt s of
+                Yield x s' -> f i x (go (i + 1) s')
+                Skip    s' -> go i s'
+                Done       -> base
+    
+    ifoldl f base' = fold' . stream
+      where
+        fold' (Stream nxt s0 _) = go base' 0 s0
+            where
+              go base !i !s = case nxt s of
+                Yield x s' -> go (f i base x) (i + 1) s'
+                Skip    s' -> go base i s'
+                Done       -> base
+    
+    i_foldr = T.foldr
+    i_foldl = T.foldl
+
 --------------------------------------------------------------------------------
 
 instance Thaw (ST s) Text (STBytes# s Char)
@@ -239,7 +264,4 @@ w2c (W16# w#) = C# (chr# (word2Int# w#))
 
 pfailEx :: String -> a
 pfailEx msg = throw $ PatternMatchFail $ "in SDP.Text." ++ msg
-
-
-
 
