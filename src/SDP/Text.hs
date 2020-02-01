@@ -1,6 +1,15 @@
 {-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies, FlexibleInstances #-}
 {-# LANGUAGE Unsafe, MagicHash, BangPatterns, UnboxedTuples #-}
 
+{- |
+    Module      :  SDP.Text
+    Copyright   :  (c) Andrey Mulik 2020
+    License     :  BSD-style
+    Maintainer  :  work.a.mulik@gmail.com
+    Portability :  non-portable (GHC only)
+    
+    @SDP.Text@ provides SDP instances for strict 'Text'.
+-}
 module SDP.Text
 (
   -- * Exports
@@ -48,12 +57,20 @@ import Control.Exception.SDP
 
 default ()
 
--- TODO: move encoding to a separate module.
-
 --------------------------------------------------------------------------------
 
 -- | 'Text' alias, may reduce ambiguity.
 type SText = Text
+
+--------------------------------------------------------------------------------
+
+instance Estimate Text
+  where
+    {-# INLINE (<.=>) #-}
+    (<.=>) = T.compareLength
+    
+    {-# INLINE (<==>) #-}
+    xs <==> ys = xs `T.compareLength` sizeOf ys
 
 --------------------------------------------------------------------------------
 
@@ -102,10 +119,6 @@ instance Split Text Char
     drop  = T.drop
     split = T.splitAt
     
-    -- TODO: implement splits
-    
-    -- TODO: implement parts
-    
     chunks = T.chunksOf
     
     isPrefixOf = T.isPrefixOf
@@ -140,8 +153,6 @@ instance Indexed Text Int Char
     
     -- | O(n).
     (.!) = T.index
-    
-    (*$) = undefined
 
 instance IFold Text Int Char
   where
@@ -170,11 +181,7 @@ instance IFold Text Int Char
 
 instance Thaw (ST s) Text (STBytes# s Char)
   where
-    thaw es@(Text _ _ m) = do
-        marr <- filled n '\0'
-        unzip# (textRepack es) m marr n
-      where
-        n = sizeOf es
+    thaw es = filled (sizeOf es) '\0' >>= unzip# (textRepack es)
 
 instance Thaw (ST s) Text (STBytes s Int Char)
   where
@@ -194,8 +201,11 @@ instance (Index i) => Freeze (ST s) (STBytes s i Char) Text
 
 --------------------------------------------------------------------------------
 
+-- TODO: move encoding to a separate module.
+
 {-
-  @SDP@ structures (Bytes\#, Bytes, Ublist, ByteList) store characters
+  Note:
+  @SDP@ structures (Bytes#, Bytes, Ublist, ByteList) store characters
   pessimistically (by 32 bit), which makes random access possible.
   @Text@ stores data more tightly and prefer stream access.
 -}
@@ -213,14 +223,13 @@ zip# es n = go 0 0
     marr# = unsafeUnpackMutableBytes# es
     es'   = unsafeCoerceMutableBytes# es -- [safe]: Char => Word16
 
-unzip# :: SBytes# Word16 -> Int -> STBytes# s Char -> Int -> ST s (STBytes# s Char)
-unzip# src n marr m = do go (n - 1) (m - 1); return marr
+unzip# :: SBytes# Word16 -> STBytes# s Char -> ST s (STBytes# s Char)
+unzip# src marr = do go 0 0; return marr
   where
-    go i j = when (i > 0) $ do o <- move src i marr j; go (i - 2) (j - o)
+    go i j = when (i < n) $ do o <- move src i marr j; go (i + o) (j + 1)
+    
+    n = sizeOf src
 
---------------------------------------------------------------------------------
-
-{-# INLINE write# #-}
 write# :: STBytes# s Word16 -> Char -> Int -> ST s Int
 write# es c i = if n < 0x10000
     then do writeM_ es i c'; return 1
@@ -234,11 +243,11 @@ write# es c i = if n < 0x10000
 
 move :: SBytes# Word16 -> Int -> STBytes# s Char -> Int -> ST s Int
 move src i marr j = if lo >= 0xD800 && lo <= 0xDBFF
-    then do writeM_ marr j (u16c lo hi); return 1
-    else do writeM_ marr (j - 1) (w2c lo); writeM_ marr j (w2c hi); return 2
+    then do writeM_ marr j (u16c lo hi); return 2
+    else do writeM_ marr j   (w2c lo);   return 1
   where
-    lo = src !^ (i - 1)
-    hi = src !^ i
+    lo = src !^ i
+    hi = src !^ (i + 1)
 
 --------------------------------------------------------------------------------
 
@@ -264,4 +273,8 @@ w2c (W16# w#) = C# (chr# (word2Int# w#))
 
 pfailEx :: String -> a
 pfailEx msg = throw $ PatternMatchFail $ "in SDP.Text." ++ msg
+
+
+
+
 
