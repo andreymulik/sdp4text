@@ -1,1 +1,6 @@
-Changelog for sdp4text
+version 0.2:
+  ADDED
+    Text (strict and lazy) SDP wrapper
+    
+    Test suite
+
