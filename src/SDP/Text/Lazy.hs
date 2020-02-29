@@ -13,7 +13,7 @@
 module SDP.Text.Lazy
 (
   -- * Exports
-  module SDP.Indexed,
+  module SDP.IndexedM,
   
   -- * Lazy text
   LText, Text
@@ -24,20 +24,15 @@ import Prelude ()
 import SDP.SafePrelude
 
 import SDP.IndexedM
-import SDP.Indexed  -- just for export
 
 import qualified Data.Text.Lazy as L
-
-import SDP.Text ()
-
 import Data.Text.Lazy ( Text )
+import SDP.Text ()
 
 import Data.Maybe
 
 import SDP.ByteList.STUblist
 import SDP.ByteList.ST
-
-import SDP.Internal.SBytes
 
 import Control.Exception.SDP
 import Control.Monad.ST
@@ -127,7 +122,7 @@ instance Indexed Text Int Char
     
     assoc bnds ascs = runST $ fromAssocs bnds ascs >>= done
     
-    fromIndexed  es = runST $ fromIndexed' es >>= done
+    fromIndexed es = runST $ fromIndexed' es >>= done
     
     Z  // ascs = null ascs ? Z $ assoc (l, u) ascs
       where
@@ -135,18 +130,15 @@ instance Indexed Text Int Char
         u = fst $ maximumBy cmpfst ascs
     es // ascs = runST $ thaw es >>= (`overwrite` ascs) >>= done
     
-    -- | O(n).
     (!^) es = L.index es . fromIntegral
-    
-    -- | O(n).
     (.!) es = L.index es . fromIntegral
 
 --------------------------------------------------------------------------------
 
 instance Thaw (ST s) Text (STUblist s Char)
   where
-    thaw       = foldr (liftA2 STUblist .       thaw) (return STUBEmpty) . L.toChunks
-    unsafeThaw = foldr (liftA2 STUblist . unsafeThaw) (return STUBEmpty) . L.toChunks
+    unsafeThaw = fmap STUblist . mapM unsafeThaw . L.toChunks
+    thaw       = fmap STUblist .    mapM thaw    . L.toChunks
 
 instance Thaw (ST s) Text (STByteList s Int Char)
   where
@@ -160,8 +152,8 @@ instance Thaw (ST s) Text (STByteList s Int Char)
 
 instance Freeze (ST s) (STUblist s Char) Text
   where
-    freeze       = fmap L.fromChunks . mapM    freeze    . chunks'
-    unsafeFreeze = fmap L.fromChunks . mapM unsafeFreeze . chunks'
+    unsafeFreeze (STUblist es) = L.fromChunks <$> mapM unsafeFreeze es
+    freeze       (STUblist es) = L.fromChunks <$> mapM    freeze    es
 
 instance Freeze (ST s) (STByteList s Int Char) Text
   where
@@ -170,16 +162,9 @@ instance Freeze (ST s) (STByteList s Int Char) Text
 
 --------------------------------------------------------------------------------
 
-chunks' :: STUblist s Char -> [STBytes# s Char]
-chunks' es = case es of {STUblist marr# marr -> marr# : chunks' marr; _ -> []}
-
 done :: STUblist s Char -> ST s Text
 done =  freeze
 
 pfailEx :: String -> a
-pfailEx msg = throw $ PatternMatchFail $ "in SDP.Text." ++ msg
-
-
-
-
+pfailEx msg = throw $ PatternMatchFail $ "in SDP.Text.Lazy." ++ msg
 
