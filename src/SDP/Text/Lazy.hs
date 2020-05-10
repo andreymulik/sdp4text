@@ -1,5 +1,5 @@
-{-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies, FlexibleInstances #-}
-{-# LANGUAGE Unsafe, MagicHash, BangPatterns, UnboxedTuples #-}
+{-# LANGUAGE MultiParamTypeClasses, FlexibleInstances, Unsafe, MagicHash #-}
+{-# LANGUAGE BangPatterns, UnboxedTuples #-}
 
 {- |
     Module      :  SDP.Text.Lazy
@@ -13,6 +13,8 @@
 module SDP.Text.Lazy
 (
   -- * Exports
+  module System.IO.Classes,
+  
   module SDP.IndexedM,
   
   -- * Lazy text
@@ -26,6 +28,8 @@ import SDP.SafePrelude
 import SDP.IndexedM
 
 import qualified Data.Text.Lazy as L
+import qualified Data.Text.Lazy.IO as IO
+
 import Data.Text.Lazy ( Text )
 import SDP.Text ()
 
@@ -36,6 +40,8 @@ import SDP.ByteList.ST
 
 import Control.Exception.SDP
 import Control.Monad.ST
+
+import System.IO.Classes
 
 default ()
 
@@ -162,9 +168,28 @@ instance Freeze (ST s) (STByteList s Int Char) Text
 
 --------------------------------------------------------------------------------
 
+{- IsFile and IsTextFile instances. -}
+
+instance IsFile Text
+  where
+    hGetContents = IO.hGetContents
+    hPutContents = IO.hPutStr
+
+instance IsTextFile Text
+  where
+    hGetLine = IO.hGetLine
+    hPutStr  = IO.hPutStr
+    
+    hPutStrLn = IO.hPutStrLn
+
+--------------------------------------------------------------------------------
+
 done :: STUblist s Char -> ST s Text
 done =  freeze
 
 pfailEx :: String -> a
 pfailEx msg = throw $ PatternMatchFail $ "in SDP.Text.Lazy." ++ msg
+
+
+
 

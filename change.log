@@ -1,6 +1,5 @@
 version 0.2:
   ADDED
-    Text (strict and lazy) SDP wrapper
-    
-    Test suite
+    * Text (strict and lazy) SDP wrapper and tests
+    * sdp-io support
 

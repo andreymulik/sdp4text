@@ -1,5 +1,5 @@
-{-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies, FlexibleInstances #-}
-{-# LANGUAGE Unsafe, MagicHash, BangPatterns, UnboxedTuples #-}
+{-# LANGUAGE MultiParamTypeClasses, FlexibleInstances, Unsafe, MagicHash #-}
+{-# LANGUAGE BangPatterns, UnboxedTuples #-}
 
 {- |
     Module      :  SDP.Text
@@ -13,6 +13,8 @@
 module SDP.Text
 (
   -- * Exports
+  module System.IO.Classes,
+  
   module SDP.Indexed,
   
   -- * Strict text
@@ -23,13 +25,13 @@ where
 import Prelude ()
 import SDP.SafePrelude
 
-import SDP.IndexedM
-import SDP.Indexed  -- just for export
+import SDP.Indexed
 
 import Data.Text.Array    ( Array (..) )
 import Data.Text.Internal ( Text  (..) )
 
 import qualified Data.Text as T
+import qualified Data.Text.IO as IO
 
 import Data.Text.Internal.Fusion ( Stream (..), Step (..), stream )
 
@@ -54,6 +56,8 @@ import SDP.Internal.SBytes
 import SDP.Bytes.ST
 
 import Control.Exception.SDP
+
+import System.IO.Classes
 
 default ()
 
@@ -201,7 +205,21 @@ instance (Index i) => Freeze (ST s) (STBytes s i Char) Text
 
 --------------------------------------------------------------------------------
 
--- TODO: move encoding to a separate module.
+{- IsFile and IsTextFile instances. -}
+
+instance IsFile Text
+  where
+    hGetContents = IO.hGetContents
+    hPutContents = IO.hPutStr
+
+instance IsTextFile Text
+  where
+    hGetLine = IO.hGetLine
+    hPutStr  = IO.hPutStr
+    
+    hPutStrLn = IO.hPutStrLn
+
+--------------------------------------------------------------------------------
 
 {-
   Note:
@@ -273,8 +291,5 @@ w2c (W16# w#) = C# (chr# (word2Int# w#))
 
 pfailEx :: String -> a
 pfailEx msg = throw $ PatternMatchFail $ "in SDP.Text." ++ msg
-
-
-
 
 
