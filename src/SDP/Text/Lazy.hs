@@ -1,5 +1,4 @@
-{-# LANGUAGE MultiParamTypeClasses, FlexibleInstances, Unsafe, MagicHash #-}
-{-# LANGUAGE BangPatterns, UnboxedTuples #-}
+{-# LANGUAGE MultiParamTypeClasses, FlexibleInstances, MagicHash, Unsafe #-}
 
 {- |
     Module      :  SDP.Text.Lazy
@@ -35,8 +34,8 @@ import SDP.Text ()
 
 import Data.Maybe
 
+import SDP.Templates.AnyChunks
 import SDP.ByteList.STUblist
-import SDP.ByteList.ST
 
 import Control.Exception.SDP
 import Control.Monad.ST
@@ -62,7 +61,7 @@ instance Estimate Text
 
 --------------------------------------------------------------------------------
 
-instance Bordered Text Int Char
+instance Bordered Text Int
   where
     lower   _ = 0
     upper  ts = sizeOf ts - 1
@@ -143,28 +142,13 @@ instance Indexed Text Int Char
 
 instance Thaw (ST s) Text (STUblist s Char)
   where
-    unsafeThaw = fmap STUblist . mapM unsafeThaw . L.toChunks
-    thaw       = fmap STUblist .    mapM thaw    . L.toChunks
-
-instance Thaw (ST s) Text (STByteList s Int Char)
-  where
-    thaw es = STByteList l u <$> thaw es
-      where
-        (l, u) = defaultBounds (sizeOf es)
-    
-    unsafeThaw es = STByteList l u <$> unsafeThaw es
-      where
-        (l, u) = defaultBounds (sizeOf es)
+    unsafeThaw = fmap AnyChunks . mapM unsafeThaw . L.toChunks
+    thaw       = fmap AnyChunks . mapM thaw       . L.toChunks
 
 instance Freeze (ST s) (STUblist s Char) Text
   where
-    unsafeFreeze (STUblist es) = L.fromChunks <$> mapM unsafeFreeze es
-    freeze       (STUblist es) = L.fromChunks <$> mapM    freeze    es
-
-instance Freeze (ST s) (STByteList s Int Char) Text
-  where
-    freeze       (STByteList _ _ es) = freeze es
-    unsafeFreeze (STByteList _ _ es) = unsafeFreeze es
+    unsafeFreeze (AnyChunks es) = L.fromChunks <$> mapM unsafeFreeze es
+    freeze       (AnyChunks es) = L.fromChunks <$> mapM freeze       es
 
 --------------------------------------------------------------------------------
 
@@ -177,10 +161,9 @@ instance IsFile Text
 
 instance IsTextFile Text
   where
-    hGetLine = IO.hGetLine
-    hPutStr  = IO.hPutStr
-    
     hPutStrLn = IO.hPutStrLn
+    hGetLine  = IO.hGetLine
+    hPutStr   = IO.hPutStr
 
 --------------------------------------------------------------------------------
 
@@ -188,8 +171,5 @@ done :: STUblist s Char -> ST s Text
 done =  freeze
 
 pfailEx :: String -> a
-pfailEx msg = throw $ PatternMatchFail $ "in SDP.Text.Lazy." ++ msg
-
-
-
+pfailEx =  throw . PatternMatchFail . showString "in SDP.Text.Lazy."
 

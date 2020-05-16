@@ -15,7 +15,7 @@ module SDP.Text
   -- * Exports
   module System.IO.Classes,
   
-  module SDP.Indexed,
+  module SDP.IndexedM,
   
   -- * Strict text
   SText, Text
@@ -25,7 +25,7 @@ where
 import Prelude ()
 import SDP.SafePrelude
 
-import SDP.Indexed
+import SDP.IndexedM
 
 import Data.Text.Array    ( Array (..) )
 import Data.Text.Internal ( Text  (..) )
@@ -35,6 +35,7 @@ import qualified Data.Text.IO as IO
 
 import Data.Text.Internal.Fusion ( Stream (..), Step (..), stream )
 
+import Data.Coerce
 import Data.Maybe
 import Data.Bits
 import Data.Char
@@ -48,16 +49,18 @@ import GHC.Base
     uncheckedIShiftL#, word2Int#, chr#, (+#), (-#)
   )
 
-import GHC.ST ( ST (..), runST )
+import GHC.ST ( ST (..) )
 
 import GHC.Word ( Word16 (..) )
 
-import SDP.Internal.SBytes
-import SDP.Bytes.ST
+import SDP.Prim.SBytes
+import SDP.Prim.IBytes
+
+import System.IO.Classes
 
 import Control.Exception.SDP
 
-import System.IO.Classes
+import Control.Monad.ST
 
 default ()
 
@@ -78,7 +81,7 @@ instance Estimate Text
 
 --------------------------------------------------------------------------------
 
-instance Bordered Text Int Char
+instance Bordered Text Int
   where
     lower   _ = 0
     upper  ts = sizeOf ts - 1
@@ -152,31 +155,28 @@ instance Indexed Text Int Char
         u = fst $ maximumBy cmpfst ascs
     es // ascs = runST $ thaw es >>= (`overwrite` ascs) >>= done
     
-    -- | O(n).
-    (!^) = T.index
-    
-    -- | O(n).
-    (.!) = T.index
+    (!^) = T.index -- ^ O(n).
+    (.!) = T.index -- ^ O(n).
 
 instance IFold Text Int Char
   where
     ifoldr f base = fold' . stream
       where
         fold' (Stream nxt s0 _) = go 0 s0
-            where
-              go !i !s = case nxt s of
-                Yield x s' -> f i x (go (i + 1) s')
-                Skip    s' -> go i s'
-                Done       -> base
+          where
+            go !i !s = case nxt s of
+              Yield x s' -> f i x (go (i + 1) s')
+              Skip    s' -> go i s'
+              Done       -> base
     
     ifoldl f base' = fold' . stream
       where
         fold' (Stream nxt s0 _) = go base' 0 s0
-            where
-              go base !i !s = case nxt s of
-                Yield x s' -> go (f i base x) (i + 1) s'
-                Skip    s' -> go base i s'
-                Done       -> base
+          where
+            go base !i !s = case nxt s of
+              Yield x s' -> go (f i base x) (i + 1) s'
+              Skip    s' -> go base i s'
+              Done       -> base
     
     i_foldr = T.foldr
     i_foldl = T.foldl
@@ -187,21 +187,20 @@ instance Thaw (ST s) Text (STBytes# s Char)
   where
     thaw es = filled (sizeOf es) '\0' >>= unzip# (textRepack es)
 
-instance Thaw (ST s) Text (STBytes s Int Char)
-  where
-    thaw es = STBytes l u <$> thaw es where (l, u) = defaultBounds (sizeOf es)
-
 instance Freeze (ST s) (STBytes# s Char) Text
   where
-    freeze = copied >=> unsafeFreeze
-    
-    unsafeFreeze es = getSizeOf es >>= zip# es
+    unsafeFreeze = zip#
+    freeze       = copied >=> unsafeFreeze
 
-instance (Index i) => Freeze (ST s) (STBytes s i Char) Text
+instance Thaw IO Text (IOBytes# Char)
   where
-    freeze = copied >=> unsafeFreeze
-    
-    unsafeFreeze (STBytes l u marr#) = marr# `zip#` size (l, u)
+    unsafeThaw = pack' . unsafeThaw
+    thaw       = pack' . thaw
+
+instance Freeze IO (IOBytes# Char) Text
+  where
+    unsafeFreeze (IOBytes# es) = stToIO (unsafeFreeze es)
+    freeze       (IOBytes# es) = stToIO (freeze es)
 
 --------------------------------------------------------------------------------
 
@@ -223,15 +222,14 @@ instance IsTextFile Text
 
 {-
   Note:
-  @SDP@ structures (Bytes#, Bytes, Ublist, ByteList) store characters
-  pessimistically (by 32 bit), which makes random access possible.
-  @Text@ stores data more tightly and prefer stream access.
+  @SDP@ structures (Bytes#, Bytes, Ublist, ByteList) stores characters
+  pessimistically (by 32 bit), and provides random access. @Text@ stores data
+  more tightly and prefer stream access.
 -}
-
-zip# :: STBytes# s Char -> Int -> ST s Text
-zip# es n = go 0 0
+zip# :: STBytes# s Char -> ST s Text
+zip# es = go 0 0
   where
-    go i j@(I# j#) = if i < n
+    go i j@(I# j#) = if i < sizeOf es
       then do c <- es !#> i; o <- write# es' c j; go (i + 1) (j + o)
       
       else ST $ \ s1# -> case shrinkMutableByteArray# marr# j# s1# of
@@ -244,9 +242,12 @@ zip# es n = go 0 0
 unzip# :: SBytes# Word16 -> STBytes# s Char -> ST s (STBytes# s Char)
 unzip# src marr = do go 0 0; return marr
   where
-    go i j = when (i < n) $ do o <- move src i marr j; go (i + o) (j + 1)
-    
-    n = sizeOf src
+    go i j = when (i < sizeOf src) $ if lo >= 0xD800 && lo <= 0xDBFF
+       then do writeM_ marr j (u16c lo hi); go (i + 2) (j + 1)
+       else do writeM_ marr j   (w2c lo);   go (i + 1) (j + 1)
+      where
+        lo = src !^ i
+        hi = src !^ (i + 1)
 
 write# :: STBytes# s Word16 -> Char -> Int -> ST s Int
 write# es c i = if n < 0x10000
@@ -259,15 +260,10 @@ write# es c i = if n < 0x10000
     lo = fromIntegral $ (m `shiftR` 10) + 0xD800
     hi = fromIntegral $ (m  .&.  0x3FF) + 0xDC00
 
-move :: SBytes# Word16 -> Int -> STBytes# s Char -> Int -> ST s Int
-move src i marr j = if lo >= 0xD800 && lo <= 0xDBFF
-    then do writeM_ marr j (u16c lo hi); return 2
-    else do writeM_ marr j   (w2c lo);   return 1
-  where
-    lo = src !^ i
-    hi = src !^ (i + 1)
-
 --------------------------------------------------------------------------------
+
+pack' :: ST RealWorld (STBytes# RealWorld a) -> IO (IOBytes# a)
+pack' =  stToIO . coerce
 
 -- Pack 'Text' as SBytes# without representation changes.
 {-# INLINE textRepack #-}
@@ -290,6 +286,5 @@ w2c :: Word16 -> Char
 w2c (W16# w#) = C# (chr# (word2Int# w#))
 
 pfailEx :: String -> a
-pfailEx msg = throw $ PatternMatchFail $ "in SDP.Text." ++ msg
-
+pfailEx =  throw . PatternMatchFail . showString "in SDP.Text."
 
