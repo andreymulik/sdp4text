@@ -70,6 +70,7 @@ test-suite test-bytestring-strict
     sdp-ioarrays               >= 0.2  && < 0.3,
     
     QuickCheck                 >= 2.12 && < 3,
+    sdp-quickcheck             >= 0.2  && < 0.3,
     quickcheck-instances       >= 0.3  && < 0.4,
     
     test-framework             >= 0.8  && < 0.9,
@@ -96,6 +97,7 @@ test-suite test-bytestring-lazy
     sdp-ioarrays               >= 0.2  && < 0.3,
     
     QuickCheck                 >= 2.12 && < 3,
+    sdp-quickcheck             >= 0.2  && < 0.3,
     quickcheck-instances       >= 0.3  && < 0.4,
     
     test-framework             >= 0.8  && < 0.9,
