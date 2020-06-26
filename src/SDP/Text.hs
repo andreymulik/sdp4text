@@ -155,8 +155,8 @@ instance Indexed Text Int Char
         u = fst $ maximumBy cmpfst ascs
     es // ascs = runST $ thaw es >>= (`overwrite` ascs) >>= done
     
-    (!^) = T.index -- ^ O(n).
-    (.!) = T.index -- ^ O(n).
+    (!^) = T.index
+    (.!) = T.index
 
 instance IFold Text Int Char
   where
