@@ -23,11 +23,10 @@ where
 
 import Prelude ()
 import SDP.SafePrelude
-
 import SDP.IndexedM
 
-import qualified Data.Text.Lazy as L
 import qualified Data.Text.Lazy.IO as IO
+import qualified Data.Text.Lazy as L
 
 import Data.Text.Lazy ( Text )
 import SDP.Text ()
@@ -51,6 +50,13 @@ type LText = Text
 
 --------------------------------------------------------------------------------
 
+{- Nullable and Estimate instances. -}
+
+instance Nullable Text
+  where
+    isNull = L.null
+    lzero  = L.empty
+
 instance Estimate Text
   where
     {-# INLINE (<.=>) #-}
@@ -61,6 +67,8 @@ instance Estimate Text
 
 --------------------------------------------------------------------------------
 
+{- Bordered, Linear and Split instances. -}
+
 instance Bordered Text Int
   where
     lower   _ = 0
@@ -70,12 +78,9 @@ instance Bordered Text Int
 
 instance Linear Text Char
   where
-    isNull = L.null
-    lzero  = L.empty
-    single = L.singleton
-    
     uncons = fromMaybe (pfailEx "(:>)") . L.uncons
     unsnoc = fromMaybe (pfailEx "(:<)") . L.unsnoc
+    single = L.singleton
     toHead = L.cons
     toLast = L.snoc
     

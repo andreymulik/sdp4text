@@ -1,5 +1,5 @@
-{-# LANGUAGE MultiParamTypeClasses, FlexibleInstances, Unsafe, MagicHash #-}
-{-# LANGUAGE BangPatterns, UnboxedTuples #-}
+{-# LANGUAGE Unsafe, MagicHash, BangPatterns, UnboxedTuples #-}
+{-# LANGUAGE MultiParamTypeClasses, FlexibleInstances #-}
 
 {- |
     Module      :  SDP.Text
@@ -24,16 +24,14 @@ where
 
 import Prelude ()
 import SDP.SafePrelude
-
 import SDP.IndexedM
 
-import Data.Text.Array    ( Array (..) )
 import Data.Text.Internal ( Text  (..) )
-
-import qualified Data.Text as T
-import qualified Data.Text.IO as IO
+import Data.Text.Array    ( Array (..) )
 
 import Data.Text.Internal.Fusion ( Stream (..), Step (..), stream )
+import qualified Data.Text.IO as IO
+import qualified Data.Text as T
 
 import Data.Coerce
 import Data.Maybe
@@ -49,9 +47,8 @@ import GHC.Base
     uncheckedIShiftL#, word2Int#, chr#, (+#), (-#)
   )
 
-import GHC.ST ( ST (..) )
-
 import GHC.Word ( Word16 (..) )
+import GHC.ST   ( ST (..) )
 
 import SDP.Prim.SBytes
 import SDP.Prim.IBytes
@@ -59,7 +56,6 @@ import SDP.Prim.IBytes
 import System.IO.Classes
 
 import Control.Exception.SDP
-
 import Control.Monad.ST
 
 default ()
@@ -70,6 +66,13 @@ default ()
 type SText = Text
 
 --------------------------------------------------------------------------------
+
+{- Nullable and Estimate instances. -}
+
+instance Nullable Text
+  where
+    isNull = T.null
+    lzero  = T.empty
 
 instance Estimate Text
   where
@@ -90,12 +93,9 @@ instance Bordered Text Int
 
 instance Linear Text Char
   where
-    isNull = T.null
-    lzero  = T.empty
-    single = T.singleton
-    
     uncons = fromMaybe (pfailEx "(:>)") . T.uncons
     unsnoc = fromMaybe (pfailEx "(:<)") . T.unsnoc
+    single = T.singleton
     toHead = T.cons
     toLast = T.snoc
     
