@@ -100,6 +100,7 @@ instance Linear Text Char
     toLast = T.snoc
     
     (++) = T.append
+    (!^) = T.index
     head = T.head
     last = T.last
     tail = T.tail
@@ -155,7 +156,6 @@ instance Indexed Text Int Char
         u = fst $ maximumBy cmpfst ascs
     es // ascs = runST $ thaw es >>= (`overwrite` ascs) >>= done
     
-    (!^) = T.index
     (.!) = T.index
 
 instance IFold Text Int Char

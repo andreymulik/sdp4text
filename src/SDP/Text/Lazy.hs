@@ -90,6 +90,8 @@ instance Linear Text Char
     tail = L.tail
     init = L.init
     
+    (!^) es = L.index es . fromIntegral
+    
     replicate n e = L.replicate (fromIntegral n) (L.singleton e)
     
     fromList = L.pack
@@ -126,6 +128,8 @@ instance Split Text Char
 
 --------------------------------------------------------------------------------
 
+{- Indexed instance. -}
+
 instance Indexed Text Int Char
   where
     assoc' bnds defvalue ascs = runST $ fromAssocs' bnds defvalue ascs >>= done
@@ -140,10 +144,11 @@ instance Indexed Text Int Char
         u = fst $ maximumBy cmpfst ascs
     es // ascs = runST $ thaw es >>= (`overwrite` ascs) >>= done
     
-    (!^) es = L.index es . fromIntegral
     (.!) es = L.index es . fromIntegral
 
 --------------------------------------------------------------------------------
+
+{- Thaw and Freeze instances. -}
 
 instance Thaw (ST s) Text (STUblist s Char)
   where
