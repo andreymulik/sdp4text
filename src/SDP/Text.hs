@@ -51,7 +51,6 @@ import GHC.Word ( Word16 (..) )
 import GHC.ST   ( ST (..) )
 
 import SDP.Prim.SBytes
-import SDP.Prim.IBytes
 
 import System.IO.Classes
 
@@ -287,4 +286,5 @@ w2c (W16# w#) = C# (chr# (word2Int# w#))
 
 pfailEx :: String -> a
 pfailEx =  throw . PatternMatchFail . showString "in SDP.Text."
+
 
