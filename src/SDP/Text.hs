@@ -226,17 +226,20 @@ instance IsTextFile Text
   more tightly and prefer stream access.
 -}
 zip# :: STBytes# s Char -> ST s Text
-zip# es = go 0 0
+zip# es = go o o
   where
-    go i j@(I# j#) = if i < sizeOf es
-      then do c <- es !#> i; o <- write# es' c j; go (i + 1) (j + o)
+    go i j@(I# j#) = if i < n
+      then do c <- es !#> i; o' <- write# es' c j; go (i + 1) (j + o')
       
       else ST $ \ s1# -> case shrinkMutableByteArray# marr# j# s1# of
         s2# -> case unsafeFreezeByteArray# marr# s2# of
           (# s3#, text# #) -> (# s3#, Text (Array text#) 0 j #)
     
-    marr# = unsafeUnpackMutableBytes# es
-    es'   = unsafeCoerceMutableBytes# es -- [safe]: Char => Word16
+    marr# = unpackSTBytes# es
+    es'   = unsafeCoerceSTBytes# es -- [safe]: Char => Word16
+    
+    o = I# (offsetSTBytes# es)
+    n = sizeOf es
 
 unzip# :: SBytes# Word16 -> STBytes# s Char -> ST s (STBytes# s Char)
 unzip# src marr = do go 0 0; return marr
@@ -267,7 +270,7 @@ pack' =  stToIO . coerce
 -- Pack 'Text' as SBytes# without representation changes.
 {-# INLINE textRepack #-}
 textRepack :: Text -> SBytes# Word16
-textRepack (Text (Array text#) o n) = drop o (unsafePackPseudoBytes# n text#)
+textRepack (Text (Array text#) o n) = drop o (packSBytes# n text#)
 
 {-# INLINE done #-}
 done :: STBytes# s Char -> ST s Text
@@ -286,5 +289,7 @@ w2c (W16# w#) = C# (chr# (word2Int# w#))
 
 pfailEx :: String -> a
 pfailEx =  throw . PatternMatchFail . showString "in SDP.Text."
+
+
 
 
