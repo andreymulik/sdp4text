@@ -26,6 +26,8 @@ import Prelude ()
 import SDP.SafePrelude
 import SDP.IndexedM
 
+import SDP.Prim.SBytes
+
 import Data.Text.Internal ( Text  (..) )
 import Data.Text.Array    ( Array (..) )
 
@@ -49,8 +51,6 @@ import GHC.Base
 
 import GHC.Word ( Word16 (..) )
 import GHC.ST   ( ST (..) )
-
-import SDP.Prim.SBytes
 
 import System.IO.Classes
 
@@ -83,6 +83,8 @@ instance Estimate Text
 
 --------------------------------------------------------------------------------
 
+{- Bordered, Linear and Split instances. -}
+
 instance Bordered Text Int
   where
     lower   _ = 0
@@ -104,6 +106,8 @@ instance Linear Text Char
     last = T.last
     tail = T.tail
     init = T.init
+    
+    write es = (es //) . single ... (,)
     
     replicate n e = T.replicate n (T.singleton e)
     
@@ -141,21 +145,34 @@ instance Split Text Char
     takeEnd = T.takeWhileEnd
     dropEnd = T.dropWhileEnd
 
-instance Indexed Text Int Char
+--------------------------------------------------------------------------------
+
+{- Map, Indexed and IFold instances. -}
+
+instance Map Text Int Char
   where
-    assoc' bnds defvalue ascs = runST $ fromAssocs' bnds defvalue ascs >>= done
-    
-    assoc bnds ascs = runST $ fromAssocs bnds ascs >>= done
-    
-    fromIndexed  es = runST $ fromIndexed' es >>= done
-    
-    Z  // ascs = null ascs ? Z $ assoc (l, u) ascs
+    toMap ascs = isNull ascs ? Z $ assoc (l, u) ascs
       where
         l = fst $ minimumBy cmpfst ascs
         u = fst $ maximumBy cmpfst ascs
+    
+    toMap' defvalue ascs = isNull ascs ? Z $ assoc' (l, u) defvalue ascs
+      where
+        l = fst $ minimumBy cmpfst ascs
+        u = fst $ maximumBy cmpfst ascs
+    
+    Z  // ascs = toMap ascs
     es // ascs = runST $ thaw es >>= (`overwrite` ascs) >>= done
     
     (.!) = T.index
+
+instance Indexed Text Int Char
+  where
+    assoc bnds ascs = runST $ fromAssocs bnds ascs >>= done
+    
+    assoc' bnds defvalue ascs = runST $ fromAssocs' bnds defvalue ascs >>= done
+    
+    fromIndexed es = runST $ fromIndexed' es >>= done
 
 instance IFold Text Int Char
   where
@@ -289,7 +306,5 @@ w2c (W16# w#) = C# (chr# (word2Int# w#))
 
 pfailEx :: String -> a
 pfailEx =  throw . PatternMatchFail . showString "in SDP.Text."
-
-
 
 
