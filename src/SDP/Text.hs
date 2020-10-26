@@ -262,16 +262,16 @@ unzip# :: SBytes# Word16 -> STBytes# s Char -> ST s (STBytes# s Char)
 unzip# src marr = do go 0 0; return marr
   where
     go i j = when (i < sizeOf src) $ if lo >= 0xD800 && lo <= 0xDBFF
-       then do writeM_ marr j (u16c lo hi); go (i + 2) (j + 1)
-       else do writeM_ marr j   (w2c lo);   go (i + 1) (j + 1)
+       then do writeM marr j (u16c lo hi); go (i + 2) (j + 1)
+       else do writeM marr j   (w2c lo);   go (i + 1) (j + 1)
       where
         lo = src !^ i
         hi = src !^ (i + 1)
 
 write# :: STBytes# s Word16 -> Char -> Int -> ST s Int
 write# es c i = if n < 0x10000
-    then do writeM_ es i c'; return 1
-    else do writeM_ es i lo; writeM_ es (i + 1) hi; return 2
+    then do writeM es i c'; return 1
+    else do writeM es i lo; writeM es (i + 1) hi; return 2
   where
     n  = ord c
     m  = n - 0x10000
