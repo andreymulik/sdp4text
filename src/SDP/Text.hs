@@ -147,7 +147,7 @@ instance Split Text Char
 
 --------------------------------------------------------------------------------
 
-{- Map, Indexed and IFold instances. -}
+{- Map, Indexed and KFold instances. -}
 
 instance Map Text Int Char
   where
@@ -174,9 +174,9 @@ instance Indexed Text Int Char
     
     fromIndexed es = runST $ fromIndexed' es >>= done
 
-instance IFold Text Int Char
+instance KFold Text Int Char
   where
-    ifoldr f base = fold' . stream
+    kfoldr f base = fold' . stream
       where
         fold' (Stream nxt s0 _) = go 0 s0
           where
@@ -185,7 +185,7 @@ instance IFold Text Int Char
               Skip    s' -> go i s'
               Done       -> base
     
-    ifoldl f base' = fold' . stream
+    kfoldl f base' = fold' . stream
       where
         fold' (Stream nxt s0 _) = go base' 0 s0
           where
@@ -194,8 +194,8 @@ instance IFold Text Int Char
               Skip    s' -> go base i s'
               Done       -> base
     
-    i_foldr = T.foldr
-    i_foldl = T.foldl
+    k_foldr = T.foldr
+    k_foldl = T.foldl
 
 --------------------------------------------------------------------------------
 

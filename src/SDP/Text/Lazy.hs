@@ -129,7 +129,7 @@ instance Split Text Char
 
 --------------------------------------------------------------------------------
 
-{- Map, Indexed and IFold instances. -}
+{- Map, Indexed and KFold instances. -}
 
 instance Map Text Int Char
   where
@@ -156,12 +156,12 @@ instance Indexed Text Int Char
     
     fromIndexed es = runST $ fromIndexed' es >>= done
 
-instance IFold Text Int Char
+instance KFold Text Int Char
   where
-    ifoldr' = ofoldr'
-    ifoldl' = ofoldl'
-    ifoldr  = ofoldr
-    ifoldl  = ofoldl
+    kfoldr' = ofoldr'
+    kfoldl' = ofoldl'
+    kfoldr  = ofoldr
+    kfoldl  = ofoldl
     
     ofoldr f =
       let go = \ ch (i, acc) -> (i + sizeOf ch, ofoldr (f . (+ i)) acc ch)
@@ -171,9 +171,9 @@ instance IFold Text Int Char
       let go = \ (i, acc) ch -> (i + sizeOf ch, ofoldl (f . (+ i)) acc ch)
       in  snd $ L.foldlChunks go (upper text, base) text
     
-    i_foldl' = i_foldl'
-    i_foldr  = L.foldr
-    i_foldl  = L.foldl
+    k_foldl' = L.foldl'
+    k_foldr  = L.foldr
+    k_foldl  = L.foldl
 
 --------------------------------------------------------------------------------
 
