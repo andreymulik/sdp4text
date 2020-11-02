@@ -123,6 +123,27 @@ instance Linear Text Char
     concatMap f = concat . foldr ((:) . f) []
     intersperse = T.intersperse
     partition   = T.partition
+    
+    ofoldr f base = fold' . stream
+      where
+        fold' (Stream nxt s0 _) = go 0 s0
+          where
+            go !i !s = case nxt s of
+              Yield x s' -> f i x (go (i + 1) s')
+              Skip    s' -> go i s'
+              Done       -> base
+    
+    ofoldl f base' = fold' . stream
+      where
+        fold' (Stream nxt s0 _) = go base' 0 s0
+          where
+            go base !i !s = case nxt s of
+              Yield x s' -> go (f i base x) (i + 1) s'
+              Skip    s' -> go base i s'
+              Done       -> base
+    
+    o_foldr = T.foldr
+    o_foldl = T.foldl
 
 instance Split Text Char
   where
@@ -147,7 +168,7 @@ instance Split Text Char
 
 --------------------------------------------------------------------------------
 
-{- Map, Indexed and KFold instances. -}
+{- Map and Indexed instances. -}
 
 instance Map Text Int Char
   where
@@ -165,6 +186,9 @@ instance Map Text Int Char
     es // ascs = runST $ thaw es >>= (`overwrite` ascs) >>= done
     
     (.!) = T.index
+    
+    kfoldr = ofoldr
+    kfoldl = ofoldl
 
 instance Indexed Text Int Char
   where
@@ -173,29 +197,6 @@ instance Indexed Text Int Char
     assoc' bnds defvalue ascs = runST $ fromAssocs' bnds defvalue ascs >>= done
     
     fromIndexed es = runST $ fromIndexed' es >>= done
-
-instance KFold Text Int Char
-  where
-    kfoldr f base = fold' . stream
-      where
-        fold' (Stream nxt s0 _) = go 0 s0
-          where
-            go !i !s = case nxt s of
-              Yield x s' -> f i x (go (i + 1) s')
-              Skip    s' -> go i s'
-              Done       -> base
-    
-    kfoldl f base' = fold' . stream
-      where
-        fold' (Stream nxt s0 _) = go base' 0 s0
-          where
-            go base !i !s = case nxt s of
-              Yield x s' -> go (f i base x) (i + 1) s'
-              Skip    s' -> go base i s'
-              Done       -> base
-    
-    k_foldr = T.foldr
-    k_foldl = T.foldl
 
 --------------------------------------------------------------------------------
 
@@ -306,5 +307,4 @@ w2c (W16# w#) = C# (chr# (word2Int# w#))
 
 pfailEx :: String -> a
 pfailEx =  throw . PatternMatchFail . showString "in SDP.Text."
-
 

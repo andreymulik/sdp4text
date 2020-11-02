@@ -107,6 +107,18 @@ instance Linear Text Char
     concatMap f = concat . foldr ((:) . f) []
     intersperse = L.intersperse
     partition   = L.partition
+    
+    ofoldr f =
+      let go = \ ch (i, acc) -> (i + sizeOf ch, ofoldr (f . (+ i)) acc ch)
+      in  snd ... L.foldrChunks go . (,) 0
+    
+    ofoldl f base text =
+      let go = \ (i, acc) ch -> (i + sizeOf ch, ofoldl (f . (+ i)) acc ch)
+      in  snd $ L.foldlChunks go (upper text, base) text
+    
+    o_foldl' = L.foldl'
+    o_foldr  = L.foldr
+    o_foldl  = L.foldl
 
 instance Split Text Char
   where
@@ -129,7 +141,7 @@ instance Split Text Char
 
 --------------------------------------------------------------------------------
 
-{- Map, Indexed and KFold instances. -}
+{- Map and Indexed instances. -}
 
 instance Map Text Int Char
   where
@@ -147,6 +159,11 @@ instance Map Text Int Char
     es // ascs = runST $ thaw es >>= (`overwrite` ascs) >>= done
     
     (.!) es = L.index es . fromIntegral
+    
+    kfoldr' = ofoldr'
+    kfoldl' = ofoldl'
+    kfoldr  = ofoldr
+    kfoldl  = ofoldl
 
 instance Indexed Text Int Char
   where
@@ -155,25 +172,6 @@ instance Indexed Text Int Char
     assoc' bnds defvalue ascs = runST $ fromAssocs' bnds defvalue ascs >>= done
     
     fromIndexed es = runST $ fromIndexed' es >>= done
-
-instance KFold Text Int Char
-  where
-    kfoldr' = ofoldr'
-    kfoldl' = ofoldl'
-    kfoldr  = ofoldr
-    kfoldl  = ofoldl
-    
-    ofoldr f =
-      let go = \ ch (i, acc) -> (i + sizeOf ch, ofoldr (f . (+ i)) acc ch)
-      in  snd ... L.foldrChunks go . (,) 0
-    
-    ofoldl f base text =
-      let go = \ (i, acc) ch -> (i + sizeOf ch, ofoldl (f . (+ i)) acc ch)
-      in  snd $ L.foldlChunks go (upper text, base) text
-    
-    k_foldl' = L.foldl'
-    k_foldr  = L.foldr
-    k_foldl  = L.foldl
 
 --------------------------------------------------------------------------------
 
@@ -211,5 +209,7 @@ done =  freeze
 
 pfailEx :: String -> a
 pfailEx =  throw . PatternMatchFail . showString "in SDP.Text.Lazy."
+
+
 
 
