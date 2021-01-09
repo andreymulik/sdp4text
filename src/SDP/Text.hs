@@ -1,4 +1,4 @@
-{-# LANGUAGE Unsafe, MagicHash, BangPatterns, UnboxedTuples #-}
+{-# LANGUAGE Trustworthy, MagicHash, BangPatterns, UnboxedTuples #-}
 {-# LANGUAGE MultiParamTypeClasses, FlexibleInstances #-}
 
 {- |
