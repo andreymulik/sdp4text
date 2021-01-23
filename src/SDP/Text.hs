@@ -18,7 +18,7 @@ module SDP.Text
   module SDP.IndexedM,
   
   -- * Strict text
-  SText, Text
+  SText, Text, T.toCaseFold, T.toLower, T.toUpper, T.toTitle
 )
 where
 
@@ -94,6 +94,9 @@ instance Bordered Text Int
 
 instance Linear Text Char
   where
+    uncons' = T.uncons
+    unsnoc' = T.unsnoc
+    
     uncons = fromMaybe (pfailEx "(:>)") . T.uncons
     unsnoc = fromMaybe (pfailEx "(:<)") . T.unsnoc
     single = T.singleton
@@ -149,13 +152,22 @@ instance Split Text Char
   where
     take  = T.take
     drop  = T.drop
+    keep  = T.takeEnd
+    sans  = T.dropEnd
     split = T.splitAt
     
-    chunks = T.chunksOf
+    splitsBy = T.split
+    splitsOn = T.splitOn
+    
+    replaceBy = T.replace
+    chunks    = T.chunksOf
     
     isPrefixOf = T.isPrefixOf
     isSuffixOf = T.isSuffixOf
     isInfixOf  = T.isInfixOf
+    
+    justifyL = T.justifyLeft
+    justifyR = T.justifyRight
     
     prefix p = T.foldr (\ e c -> p e ? c + 1 $ 0) 0
     suffix p = T.foldl (\ c e -> p e ? c + 1 $ 0) 0
@@ -307,4 +319,7 @@ w2c (W16# w#) = C# (chr# (word2Int# w#))
 
 pfailEx :: String -> a
 pfailEx =  throw . PatternMatchFail . showString "in SDP.Text."
+
+
+
 

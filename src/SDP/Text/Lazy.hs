@@ -5,7 +5,7 @@
     Copyright   :  (c) Andrey Mulik 2020
     License     :  BSD-style
     Maintainer  :  work.a.mulik@gmail.com
-    Portability :  non-portable (GHC only)
+    Portability :  non-portable (GHC extensions)
     
     @SDP.Text.Lazy@ provides SDP instances for lazy 'Text'.
 -}
@@ -17,7 +17,9 @@ module SDP.Text.Lazy
   module SDP.IndexedM,
   
   -- * Lazy text
-  LText, Text
+  LText, Text, L.toCaseFold, L.toLower, L.toUpper, L.toTitle,
+  L.fromChunks, L.toChunks, L.toStrict, L.fromStrict,
+  L.foldrChunks, L.foldlChunks
 )
 where
 
@@ -77,6 +79,9 @@ instance Bordered Text Int
 
 instance Linear Text Char
   where
+    uncons' = L.uncons
+    unsnoc' = L.unsnoc
+    
     uncons = fromMaybe (pfailEx "(:>)") . L.uncons
     unsnoc = fromMaybe (pfailEx "(:<)") . L.unsnoc
     single = L.singleton
@@ -105,6 +110,7 @@ instance Linear Text Char
     filter = L.filter
     
     concatMap f = concat . foldr ((:) . f) []
+    
     intersperse = L.intersperse
     partition   = L.partition
     
@@ -124,8 +130,17 @@ instance Split Text Char
   where
     take   = L.take     . fromIntegral
     drop   = L.drop     . fromIntegral
+    keep   = L.takeEnd  . fromIntegral
+    sans   = L.dropEnd  . fromIntegral
     split  = L.splitAt  . fromIntegral
     chunks = L.chunksOf . fromIntegral
+    
+    replaceBy = L.replace
+    splitsOn  = L.splitOn
+    splitsBy  = L.split
+    
+    justifyL = L.justifyLeft  . fromIntegral
+    justifyR = L.justifyRight . fromIntegral
     
     isPrefixOf = L.isPrefixOf
     isSuffixOf = L.isSuffixOf
