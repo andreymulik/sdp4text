@@ -83,8 +83,8 @@ concatProp               =  concatTest
 
 {- Split property. -}
 
-splitProp :: TestSplit Text
-splitProp =  splitTest
+splitProp :: Char -> TestSplit Text
+splitProp =  splitTest . (>)
 
 --------------------------------------------------------------------------------
 
