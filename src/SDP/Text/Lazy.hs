@@ -218,14 +218,14 @@ instance (MonadIO io) => Freeze io (MIOUblist io Char) Text
 
 instance IsFile Text
   where
-    hGetContents = IO.hGetContents
-    hPutContents = IO.hPutStr
+    hGetContents = liftIO  .  IO.hGetContents
+    hPutContents = liftIO ... IO.hPutStr
 
 instance IsTextFile Text
   where
-    hPutStrLn = IO.hPutStrLn
-    hGetLine  = IO.hGetLine
-    hPutStr   = IO.hPutStr
+    hPutStrLn = liftIO ... IO.hPutStrLn
+    hGetLine  = liftIO  .  IO.hGetLine
+    hPutStr   = liftIO ... IO.hPutStr
 
 --------------------------------------------------------------------------------
 

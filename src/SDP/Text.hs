@@ -235,15 +235,14 @@ instance (MonadIO io) => Freeze io (MIOBytes# io Char) Text
 
 instance IsFile Text
   where
-    hGetContents = IO.hGetContents
-    hPutContents = IO.hPutStr
+    hGetContents = liftIO  .  IO.hGetContents
+    hPutContents = liftIO ... IO.hPutStr
 
 instance IsTextFile Text
   where
-    hGetLine = IO.hGetLine
-    hPutStr  = IO.hPutStr
-    
-    hPutStrLn = IO.hPutStrLn
+    hPutStrLn = liftIO ... IO.hPutStrLn
+    hGetLine  = liftIO  .  IO.hGetLine
+    hPutStr   = liftIO ... IO.hPutStr
 
 --------------------------------------------------------------------------------
 
@@ -317,4 +316,5 @@ w2c (W16# w#) = C# (chr# (word2Int# w#))
 
 pfailEx :: String -> a
 pfailEx =  throw . PatternMatchFail . showString "in SDP.Text."
+
 
