@@ -35,10 +35,10 @@ import Data.Text.Lazy ( Text )
 import Data.Maybe
 
 import SDP.Templates.AnyChunks
+import SDP.ByteList.IOUblist
 import SDP.ByteList.STUblist
 
 import Control.Exception.SDP
-import Control.Monad.ST
 
 import System.IO.Classes
 
@@ -198,6 +198,16 @@ instance Thaw (ST s) Text (STUblist s Char)
     thaw       = fmap AnyChunks . mapM thaw       . L.toChunks
 
 instance Freeze (ST s) (STUblist s Char) Text
+  where
+    unsafeFreeze (AnyChunks es) = L.fromChunks <$> mapM unsafeFreeze es
+    freeze       (AnyChunks es) = L.fromChunks <$> mapM freeze       es
+
+instance (MonadIO io) => Thaw io Text (MIOUblist io Char)
+  where
+    unsafeThaw = fmap AnyChunks . mapM unsafeThaw . L.toChunks
+    thaw       = fmap AnyChunks . mapM thaw       . L.toChunks
+
+instance (MonadIO io) => Freeze io (MIOUblist io Char) Text
   where
     unsafeFreeze (AnyChunks es) = L.fromChunks <$> mapM unsafeFreeze es
     freeze       (AnyChunks es) = L.fromChunks <$> mapM freeze       es

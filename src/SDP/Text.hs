@@ -14,7 +14,6 @@ module SDP.Text
 (
   -- * Exports
   module System.IO.Classes,
-  
   module SDP.IndexedM,
   
   -- * Strict text
@@ -55,7 +54,6 @@ import GHC.ST   ( ST (..) )
 import System.IO.Classes
 
 import Control.Exception.SDP
-import Control.Monad.ST
 
 default ()
 
@@ -221,15 +219,15 @@ instance Freeze (ST s) (STBytes# s Char) Text
     unsafeFreeze = zip#
     freeze       = copied >=> unsafeFreeze
 
-instance Thaw IO Text (IOBytes# Char)
+instance (MonadIO io) => Thaw io Text (MIOBytes# io Char)
   where
     unsafeThaw = pack' . unsafeThaw
     thaw       = pack' . thaw
 
-instance Freeze IO (IOBytes# Char) Text
+instance (MonadIO io) => Freeze io (MIOBytes# io Char) Text
   where
-    unsafeFreeze (IOBytes# es) = stToIO (unsafeFreeze es)
-    freeze       (IOBytes# es) = stToIO (freeze es)
+    unsafeFreeze (MIOBytes# es) = stToMIO (unsafeFreeze es)
+    freeze       (MIOBytes# es) = stToMIO (freeze es)
 
 --------------------------------------------------------------------------------
 
@@ -294,8 +292,8 @@ write# es c i = if n < 0x10000
 
 --------------------------------------------------------------------------------
 
-pack' :: ST RealWorld (STBytes# RealWorld a) -> IO (IOBytes# a)
-pack' =  stToIO . coerce
+pack' :: (MonadIO io) => ST RealWorld (STBytes# RealWorld e) -> io (MIOBytes# io e)
+pack' =  stToMIO . coerce
 
 -- Pack 'Text' as SBytes# without representation changes.
 {-# INLINE textRepack #-}
@@ -319,7 +317,4 @@ w2c (W16# w#) = C# (chr# (word2Int# w#))
 
 pfailEx :: String -> a
 pfailEx =  throw . PatternMatchFail . showString "in SDP.Text."
-
-
-
 
