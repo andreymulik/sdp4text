@@ -103,8 +103,9 @@ instance Linear Text Char
     fromList = L.pack
     reverse  = L.reverse
     
-    listL = L.unpack
+    force = L.fromChunks . map force . L.toChunks
     listR = L.unpack . reverse
+    listL = L.unpack
     
     concat = L.concat . toList
     filter = L.filter
@@ -234,7 +235,6 @@ done =  freeze
 
 pfailEx :: String -> a
 pfailEx =  throw . PatternMatchFail . showString "in SDP.Text.Lazy."
-
 
 
 

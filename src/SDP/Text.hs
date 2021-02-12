@@ -115,8 +115,9 @@ instance Linear Text Char
     fromList = T.pack
     reverse  = T.reverse
     
-    listL = T.unpack
     listR = T.unpack . reverse
+    listL = T.unpack
+    force = T.copy
     
     concat = T.concat . toList
     filter = T.filter
@@ -316,5 +317,4 @@ w2c (W16# w#) = C# (chr# (word2Int# w#))
 
 pfailEx :: String -> a
 pfailEx =  throw . PatternMatchFail . showString "in SDP.Text."
-
 

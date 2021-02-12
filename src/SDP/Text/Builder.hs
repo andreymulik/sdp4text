@@ -60,6 +60,8 @@ instance Linear Builder Char
     concatMap = foldMap
     concat    = fold
     
+    force = fromLazyText . toLazyText
+    
     tail = fromLazyText . tail . toLazyText
     init = fromLazyText . init . toLazyText
     head = head . toLazyText
@@ -94,7 +96,5 @@ instance IsTextFile Builder
     hGetLine      = fmap fromLazyText . hGetLine
     hPutStrLn hdl = hPutStrLn hdl . toLazyText
     hPutStr   hdl = hPutStr   hdl . toLazyText
-
-
 
 
