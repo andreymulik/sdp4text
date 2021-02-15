@@ -195,23 +195,23 @@ instance Indexed Text Int Char
 
 instance Thaw (ST s) Text (STUblist s Char)
   where
-    unsafeThaw = fmap AnyChunks . mapM unsafeThaw . L.toChunks
-    thaw       = fmap AnyChunks . mapM thaw       . L.toChunks
+    unsafeThaw = fromChunksM <=< mapM unsafeThaw . L.toChunks
+    thaw       = fromChunksM <=< mapM thaw       . L.toChunks
 
 instance Freeze (ST s) (STUblist s Char) Text
   where
-    unsafeFreeze (AnyChunks es) = L.fromChunks <$> mapM unsafeFreeze es
-    freeze       (AnyChunks es) = L.fromChunks <$> mapM freeze       es
+    unsafeFreeze = fmap L.fromChunks . mapM unsafeFreeze . toChunks
+    freeze       = fmap L.fromChunks . mapM freeze       . toChunks
 
 instance (MonadIO io) => Thaw io Text (MIOUblist io Char)
   where
-    unsafeThaw = fmap AnyChunks . mapM unsafeThaw . L.toChunks
-    thaw       = fmap AnyChunks . mapM thaw       . L.toChunks
+    unsafeThaw = fromChunksM <=< mapM unsafeThaw . L.toChunks
+    thaw       = fromChunksM <=< mapM thaw       . L.toChunks
 
 instance (MonadIO io) => Freeze io (MIOUblist io Char) Text
   where
-    unsafeFreeze (AnyChunks es) = L.fromChunks <$> mapM unsafeFreeze es
-    freeze       (AnyChunks es) = L.fromChunks <$> mapM freeze       es
+    unsafeFreeze = fmap L.fromChunks . mapM unsafeFreeze . toChunks
+    freeze       = fmap L.fromChunks . mapM freeze       . toChunks
 
 --------------------------------------------------------------------------------
 
