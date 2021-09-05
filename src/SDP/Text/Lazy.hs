@@ -1,4 +1,4 @@
-{-# LANGUAGE Safe, MagicHash, MultiParamTypeClasses, FlexibleInstances #-}
+{-# LANGUAGE Safe, CPP, MagicHash, MultiParamTypeClasses, FlexibleInstances #-}
 
 {- |
     Module      :  SDP.Text.Lazy
@@ -81,10 +81,13 @@ instance Bordered Text Int
 instance Linear Text Char
   where
     uncons' = L.uncons
+#if MIN_VERSION_text(1,2,3)
     unsnoc' = L.unsnoc
-    
+#else
+    unsnoc' = L.null ?- \ t -> (L.init t, L.last t)
+#endif
     uncons = fromMaybe (pfailEx "(:>)") . L.uncons
-    unsnoc = fromMaybe (pfailEx "(:<)") . L.unsnoc
+    unsnoc = fromMaybe (pfailEx "(:<)") . unsnoc'
     single = L.singleton
     toHead = L.cons
     toLast = L.snoc

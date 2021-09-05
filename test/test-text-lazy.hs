@@ -7,7 +7,7 @@ import SDP.Text.Lazy
 
 import Test.SDP
 
-import Test.QuickCheck.Instances.Text ()
+import Test.QuickCheck.Instances ()
 
 default ()
 

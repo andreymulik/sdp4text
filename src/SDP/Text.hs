@@ -1,4 +1,4 @@
-{-# LANGUAGE Trustworthy, MagicHash, BangPatterns, UnboxedTuples #-}
+{-# LANGUAGE Trustworthy, MagicHash, BangPatterns, UnboxedTuples, CPP #-}
 {-# LANGUAGE MultiParamTypeClasses, FlexibleInstances #-}
 
 {- |
@@ -94,9 +94,13 @@ instance Bordered Text Int
 instance Linear Text Char
   where
     uncons' = T.uncons
+#if MIN_VERSION_text(1,2,3)
     unsnoc' = T.unsnoc
+#else
+    unsnoc' = T.null ?- \ t -> (T.init t, T.last t)
+#endif
     uncons  = fromMaybe (pfailEx "(:>)") . T.uncons
-    unsnoc  = fromMaybe (pfailEx "(:<)") . T.unsnoc
+    unsnoc  = fromMaybe (pfailEx "(:<)") . unsnoc'
     single  = T.singleton
     toHead  = T.cons
     toLast  = T.snoc
@@ -317,4 +321,5 @@ w2c (W16# w#) = C# (chr# (word2Int# w#))
 
 pfailEx :: String -> a
 pfailEx =  throw . PatternMatchFail . showString "in SDP.Text."
+
 
