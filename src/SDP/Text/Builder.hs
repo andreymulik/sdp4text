@@ -7,12 +7,12 @@
     Maintainer  :  work.a.mulik@gmail.com
     Portability :  non-portable (requires non-portable module)
     
-    @SDP.Text.Builder@ provides SDP instances for text 'Builder'.
+    "SDP.Text.Builder" provides @sdp@ instances for text 'Builder'.
     
     Note that 'Builder' is a service type for efficient @Text@ creation which
     isn't intended for element-wise operations and content changes. 'Linear'
     instance provided for convenience and many functions (folds, selections,
-    etc.) create intermediate structures (text, string).
+    etc.) creates intermediate structures (text, string, etc.).
 -}
 module SDP.Text.Builder
 (
@@ -35,10 +35,9 @@ default ()
 
 --------------------------------------------------------------------------------
 
-instance Nullable Builder
-  where
-    isNull = (== mempty)
-    lzero  = mempty
+{- Nullable and Linear instances. -}
+
+instance Nullable Builder where lzero = mempty
 
 instance Linear Builder Char
   where
@@ -86,6 +85,8 @@ instance Linear Builder Char
 
 --------------------------------------------------------------------------------
 
+{- IsFile and IsTextFile instances. -}
+
 instance IsFile Builder
   where
     hGetContents     = fmap fromLazyText . hGetContents
@@ -96,5 +97,4 @@ instance IsTextFile Builder
     hGetLine      = fmap fromLazyText . hGetLine
     hPutStrLn hdl = hPutStrLn hdl . toLazyText
     hPutStr   hdl = hPutStr   hdl . toLazyText
-
 

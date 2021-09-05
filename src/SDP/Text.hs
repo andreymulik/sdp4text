@@ -8,7 +8,7 @@
     Maintainer  :  work.a.mulik@gmail.com
     Portability :  non-portable (GHC only)
     
-    @SDP.Text@ provides SDP instances for strict 'Text'.
+    "SDP.Text" provides @sdp@ instances for strict 'Text'.
 -}
 module SDP.Text
 (
@@ -85,21 +85,21 @@ instance Estimate Text
 
 instance Bordered Text Int
   where
-    lower   _ = 0
-    upper  ts = sizeOf ts - 1
-    bounds ts = (0, sizeOf ts - 1)
-    sizeOf    = T.length
+    lower    _ = 0
+    sizeOf     = T.length
+    upper   ts = sizeOf ts - 1
+    bounds  ts = (0, sizeOf ts - 1)
+    rebound ts = \ bnds -> size bnds `take` ts
 
 instance Linear Text Char
   where
     uncons' = T.uncons
     unsnoc' = T.unsnoc
-    
-    uncons = fromMaybe (pfailEx "(:>)") . T.uncons
-    unsnoc = fromMaybe (pfailEx "(:<)") . T.unsnoc
-    single = T.singleton
-    toHead = T.cons
-    toLast = T.snoc
+    uncons  = fromMaybe (pfailEx "(:>)") . T.uncons
+    unsnoc  = fromMaybe (pfailEx "(:<)") . T.unsnoc
+    single  = T.singleton
+    toHead  = T.cons
+    toLast  = T.snoc
     
     (++) = T.append
     (!^) = T.index

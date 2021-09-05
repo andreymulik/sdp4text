@@ -7,7 +7,7 @@
     Maintainer  :  work.a.mulik@gmail.com
     Portability :  non-portable (GHC extensions)
     
-    @SDP.Text.Lazy@ provides SDP instances for lazy 'Text'.
+    "SDP.Text.Lazy" provides @sdp@ instances for lazy 'Text'.
 -}
 module SDP.Text.Lazy
 (
@@ -72,10 +72,11 @@ instance Estimate Text
 
 instance Bordered Text Int
   where
-    lower   _ = 0
-    upper  ts = sizeOf ts - 1
-    bounds ts = (0, sizeOf ts - 1)
-    sizeOf    = fromIntegral . L.length
+    lower    _ = 0
+    upper   ts = sizeOf ts - 1
+    bounds  ts = (0, sizeOf ts - 1)
+    sizeOf     = fromEnum . L.length
+    rebound ts = \ bnds -> size bnds `take` ts
 
 instance Linear Text Char
   where
@@ -235,6 +236,5 @@ done =  freeze
 
 pfailEx :: String -> a
 pfailEx =  throw . PatternMatchFail . showString "in SDP.Text.Lazy."
-
 
 
