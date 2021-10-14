@@ -3,7 +3,7 @@
 
 {- |
     Module      :  SDP.Text
-    Copyright   :  (c) Andrey Mulik 2020
+    Copyright   :  (c) Andrey Mulik 2020-2021
     License     :  BSD-style
     Maintainer  :  work.a.mulik@gmail.com
     Portability :  non-portable (GHC only)
@@ -23,6 +23,7 @@ where
 
 import Prelude ()
 import SDP.SafePrelude
+import SDP.Forceable
 import SDP.IndexedM
 
 import SDP.Prim.SBytes
@@ -64,12 +65,13 @@ type SText = Text
 
 --------------------------------------------------------------------------------
 
-{- Nullable and Estimate instances. -}
+{- Nullable, Forceable and Estimate instances. -}
 
-instance Nullable Text
-  where
-    isNull = T.null
-    lzero  = T.empty
+instance Nullable Text where isNull = T.null; lzero = T.empty
+
+#if MIN_VERSION_sdp(0,3,0)
+instance Forceable Text where force = T.copy
+#endif
 
 instance Estimate Text
   where
@@ -121,11 +123,14 @@ instance Linear Text Char
     
     listR = T.unpack . reverse
     listL = T.unpack
-    force = T.copy
     
     concat = T.concat . toList
     filter = T.filter
     
+#if !MIN_VERSION_sdp(0,3,0)
+    force = T.copy
+#endif
+
     concatMap f = concat . foldr ((:) . f) []
     intersperse = T.intersperse
     partition   = T.partition
@@ -150,9 +155,10 @@ instance Linear Text Char
     
     o_foldr = T.foldr
     o_foldl = T.foldl
-
+#if !MIN_VERSION_sdp(0,3,0)
 instance Split Text Char
   where
+#endif
     take  = T.take
     drop  = T.drop
     keep  = T.takeEnd
@@ -171,9 +177,6 @@ instance Split Text Char
     
     justifyL = T.justifyLeft
     justifyR = T.justifyRight
-    
-    prefix p = T.foldr (\ e c -> p e ? c + 1 $ 0) 0
-    suffix p = T.foldl (\ c e -> p e ? c + 1 $ 0) 0
     
     takeWhile = T.takeWhile
     dropWhile = T.dropWhile
@@ -321,5 +324,7 @@ w2c (W16# w#) = C# (chr# (word2Int# w#))
 
 pfailEx :: String -> a
 pfailEx =  throw . PatternMatchFail . showString "in SDP.Text."
+
+
 
 

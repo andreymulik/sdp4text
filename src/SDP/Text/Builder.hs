@@ -1,4 +1,4 @@
-{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE Safe, MultiParamTypeClasses, CPP #-}
 
 {- |
     Module      :  SDP.Text.Builder
@@ -26,6 +26,7 @@ where
 
 import Prelude ()
 import SDP.SafePrelude
+import SDP.Forceable
 import SDP.Text.Lazy
 import SDP.Linear
 
@@ -35,9 +36,13 @@ default ()
 
 --------------------------------------------------------------------------------
 
-{- Nullable and Linear instances. -}
+{- Nullable, Forceable and Linear instances. -}
 
 instance Nullable Builder where lzero = mempty
+
+#if MIN_VERSION_sdp(0,3,0)
+instance Forceable Builder where force = fromLazyText . toLazyText
+#endif
 
 instance Linear Builder Char
   where
@@ -59,8 +64,6 @@ instance Linear Builder Char
     concatMap = foldMap
     concat    = fold
     
-    force = fromLazyText . toLazyText
-    
     tail = fromLazyText . tail . toLazyText
     init = fromLazyText . init . toLazyText
     head = head . toLazyText
@@ -69,6 +72,10 @@ instance Linear Builder Char
     partition   f = both fromLazyText . partition f . toLazyText
     intersperse e = fromLazyText . intersperse e . toLazyText
     filter      p = fromLazyText . filter p . toLazyText
+    
+#if !MIN_VERSION_sdp(0,3,0)
+    force = fromLazyText . toLazyText
+#endif
     
     nubBy f = fromLazyText . nubBy f . toLazyText
     nub     = fromLazyText .   nub   . toLazyText
@@ -82,6 +89,14 @@ instance Linear Builder Char
     o_foldl  f base = o_foldl  f base . toLazyText
     o_foldr' f base = o_foldr' f base . toLazyText
     o_foldl' f base = o_foldl' f base . toLazyText
+#if !MIN_VERSION_sdp(0,3,0)
+instance Split Builder Char
+  where
+#endif
+    take n = fromLazyText . take n . toLazyText
+    drop n = fromLazyText . drop n . toLazyText
+    keep n = fromLazyText . keep n . toLazyText
+    sans n = fromLazyText . sans n . toLazyText
 
 --------------------------------------------------------------------------------
 

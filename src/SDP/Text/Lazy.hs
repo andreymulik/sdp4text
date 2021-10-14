@@ -2,7 +2,7 @@
 
 {- |
     Module      :  SDP.Text.Lazy
-    Copyright   :  (c) Andrey Mulik 2020
+    Copyright   :  (c) Andrey Mulik 2020-2021
     License     :  BSD-style
     Maintainer  :  work.a.mulik@gmail.com
     Portability :  non-portable (GHC extensions)
@@ -25,6 +25,7 @@ where
 
 import Prelude ()
 import SDP.SafePrelude
+import SDP.Forceable
 import SDP.IndexedM
 import SDP.Text ()
 
@@ -51,12 +52,13 @@ type LText = Text
 
 --------------------------------------------------------------------------------
 
-{- Nullable and Estimate instances. -}
+{- Nullable, Forceable and Estimate instances. -}
 
-instance Nullable Text
-  where
-    isNull = L.null
-    lzero  = L.empty
+instance Nullable Text where isNull = L.null; lzero = L.empty
+
+#if MIN_VERSION_sdp(0,3,0)
+instance Forceable Text where force = L.fromChunks . map force . L.toChunks
+#endif
 
 instance Estimate Text
   where
@@ -107,13 +109,16 @@ instance Linear Text Char
     fromList = L.pack
     reverse  = L.reverse
     
-    force = L.fromChunks . map force . L.toChunks
     listR = L.unpack . reverse
     listL = L.unpack
     
     concat = L.concat . toList
     filter = L.filter
     
+#if !MIN_VERSION_sdp(0,3,0)
+    force = L.fromChunks . map force . L.toChunks
+#endif
+
     concatMap f = concat . foldr ((:) . f) []
     
     intersperse = L.intersperse
@@ -130,9 +135,10 @@ instance Linear Text Char
     o_foldl' = L.foldl'
     o_foldr  = L.foldr
     o_foldl  = L.foldl
-
+#if !MIN_VERSION_sdp(0,3,0)
 instance Split Text Char
   where
+#endif
     take   = L.take     . fromIntegral
     drop   = L.drop     . fromIntegral
     keep   = L.takeEnd  . fromIntegral
@@ -150,9 +156,6 @@ instance Split Text Char
     isPrefixOf = L.isPrefixOf
     isSuffixOf = L.isSuffixOf
     isInfixOf  = L.isInfixOf
-    
-    prefix p = L.foldr (\ e c -> p e ? c + 1 $ 0) 0
-    suffix p = L.foldl (\ c e -> p e ? c + 1 $ 0) 0
     
     takeWhile = L.takeWhile
     dropWhile = L.dropWhile
@@ -239,5 +242,4 @@ done =  freeze
 
 pfailEx :: String -> a
 pfailEx =  throw . PatternMatchFail . showString "in SDP.Text.Lazy."
-
 
