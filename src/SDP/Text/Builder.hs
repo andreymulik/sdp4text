@@ -26,7 +26,6 @@ where
 
 import Prelude ()
 import SDP.SafePrelude
-import SDP.Forceable
 import SDP.Text.Lazy
 import SDP.Linear
 
@@ -38,11 +37,23 @@ default ()
 
 {- Nullable, Forceable and Linear instances. -}
 
-instance Nullable Builder where lzero = mempty
+instance Nullable Builder where isNull = (== mempty); lzero = mempty
 
 #if MIN_VERSION_sdp(0,3,0)
 instance Forceable Builder where force = fromLazyText . toLazyText
 #endif
+
+instance Estimate Builder
+  where
+    (<==>) = on (<=>) sizeOf
+    (<.=>) = (<=>) . sizeOf
+
+instance Bordered Builder Int
+  where
+    sizeOf = sizeOf . toLazyText
+    bounds = bounds . toLazyText
+    upper  = upper . toLazyText
+    lower  = const 0
 
 instance Linear Builder Char
   where
@@ -55,6 +66,9 @@ instance Linear Builder Char
     toHead e es = singleton e <> es
     toLast es e = es <> singleton e
     
+#if !MIN_VERSION_sdp(0,3,0)
+    force = fromLazyText . toLazyText
+#endif
     listL = listL . toLazyText
     listR = listR . toLazyText
     (++)  = (<>)
@@ -72,10 +86,6 @@ instance Linear Builder Char
     partition   f = both fromLazyText . partition f . toLazyText
     intersperse e = fromLazyText . intersperse e . toLazyText
     filter      p = fromLazyText . filter p . toLazyText
-    
-#if !MIN_VERSION_sdp(0,3,0)
-    force = fromLazyText . toLazyText
-#endif
     
     nubBy f = fromLazyText . nubBy f . toLazyText
     nub     = fromLazyText .   nub   . toLazyText

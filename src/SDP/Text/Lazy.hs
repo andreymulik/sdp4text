@@ -25,7 +25,6 @@ where
 
 import Prelude ()
 import SDP.SafePrelude
-import SDP.Forceable
 import SDP.IndexedM
 import SDP.Text ()
 
@@ -78,7 +77,6 @@ instance Bordered Text Int
     upper   ts = sizeOf ts - 1
     bounds  ts = (0, sizeOf ts - 1)
     sizeOf     = fromEnum . L.length
-    rebound ts = \ bnds -> size bnds `take` ts
 
 instance Linear Text Char
   where
@@ -120,7 +118,6 @@ instance Linear Text Char
 #endif
 
     concatMap f = concat . foldr ((:) . f) []
-    
     intersperse = L.intersperse
     partition   = L.partition
     
@@ -242,4 +239,7 @@ done =  freeze
 
 pfailEx :: String -> a
 pfailEx =  throw . PatternMatchFail . showString "in SDP.Text.Lazy."
+
+
+
 
