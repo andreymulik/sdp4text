@@ -90,6 +90,9 @@ instance Bordered Text Int
     sizeOf     = T.length
     upper   ts = sizeOf ts - 1
     bounds  ts = (0, sizeOf ts - 1)
+#if MIN_VERSION_sdp(0,3,0)
+    rebound    = T.take . size
+#endif
 
 instance Linear Text Char
   where
@@ -322,4 +325,6 @@ w2c (W16# w#) = C# (chr# (word2Int# w#))
 
 pfailEx :: String -> a
 pfailEx =  throw . PatternMatchFail . showString "in SDP.Text."
+
+
 

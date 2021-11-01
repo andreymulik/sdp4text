@@ -77,6 +77,9 @@ instance Bordered Text Int
     upper   ts = sizeOf ts - 1
     bounds  ts = (0, sizeOf ts - 1)
     sizeOf     = fromEnum . L.length
+#if MIN_VERSION_sdp(0,3,0)
+    rebound    = take . size
+#endif
 
 instance Linear Text Char
   where
@@ -239,7 +242,4 @@ done =  freeze
 
 pfailEx :: String -> a
 pfailEx =  throw . PatternMatchFail . showString "in SDP.Text.Lazy."
-
-
-
 

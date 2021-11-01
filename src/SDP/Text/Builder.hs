@@ -50,10 +50,13 @@ instance Estimate Builder
 
 instance Bordered Builder Int
   where
-    sizeOf = sizeOf . toLazyText
-    bounds = bounds . toLazyText
-    upper  = upper . toLazyText
-    lower  = const 0
+    sizeOf  = sizeOf . toLazyText
+    bounds  = bounds . toLazyText
+    upper   = upper . toLazyText
+    lower   = const 0
+#if MIN_VERSION_sdp(0,3,0)
+    rebound = take . size
+#endif
 
 instance Linear Builder Char
   where
@@ -122,4 +125,6 @@ instance IsTextFile Builder
     hGetLine      = fmap fromLazyText . hGetLine
     hPutStrLn hdl = hPutStrLn hdl . toLazyText
     hPutStr   hdl = hPutStr   hdl . toLazyText
+
+
 
