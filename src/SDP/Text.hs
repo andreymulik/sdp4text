@@ -41,12 +41,18 @@ import Data.Char
 
 import GHC.Base
   (
-    Char (..), Int (..),
+    Char (..), Int (..), shrinkMutableByteArray#, unsafeFreezeByteArray#,
     
-    shrinkMutableByteArray#, unsafeFreezeByteArray#,
-    
+#if MIN_VERSION_base(4,16,0)
+    uncheckedIShiftL#, word2Int#, chr#, (+#), (-#), word16ToWord#
+#else
     uncheckedIShiftL#, word2Int#, chr#, (+#), (-#)
+#endif
   )
+
+#if !MIN_VERSION_base(4,16,0)
+import GHC.Exts ( Word# )
+#endif
 
 import GHC.Word ( Word16 (..) )
 import GHC.ST   ( ST (..) )
@@ -300,6 +306,12 @@ write# es c i = if n < 0x10000
 
 --------------------------------------------------------------------------------
 
+#if !MIN_VERSION_base(4,16,0)
+{-# INLINE word16ToWord# #-}
+word16ToWord# :: Word# -> Word#
+word16ToWord# =  \ x# -> x#
+#endif
+
 pack' :: (MonadIO io) => ST RealWorld (STBytes# RealWorld e) -> io (MIOBytes# io e)
 pack' =  stToMIO . coerce
 
@@ -316,15 +328,13 @@ done =  unsafeFreeze
 u16c :: Word16 -> Word16 -> Char
 u16c (W16# a#) (W16# b#) = C# (chr# (upper# +# lower# +# 0x10000#))
   where
-    !upper# = uncheckedIShiftL# (word2Int# a# -# 0xD800#) 10#
-    !lower# = word2Int# b# -# 0xDC00#
+    !upper# = uncheckedIShiftL# (word2Int# (word16ToWord# a#) -# 0xD800#) 10#
+    !lower# = word2Int# (word16ToWord# b#) -# 0xDC00#
 
 {-# INLINE w2c #-}
 w2c :: Word16 -> Char
-w2c (W16# w#) = C# (chr# (word2Int# w#))
+w2c (W16# w#) = C# (chr# (word2Int# (word16ToWord# w#)))
 
 pfailEx :: String -> a
 pfailEx =  throw . PatternMatchFail . showString "in SDP.Text."
-
-
 
