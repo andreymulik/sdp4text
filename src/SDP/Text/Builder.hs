@@ -1,8 +1,18 @@
-{-# LANGUAGE Safe, MultiParamTypeClasses, CPP #-}
+{-# LANGUAGE MultiParamTypeClasses, CPP #-}
+
+#ifdef __GLASGOW_HASKELL__
+#define SDP_LINEAR_EXTRAS
+#endif
+
+#ifdef SDP_LINEAR_EXTRAS
+{-# LANGUAGE Trustworthy, TypeFamilies #-}
+#else
+{-# LANGUAGE Safe #-}
+#endif
 
 {- |
     Module      :  SDP.Text.Builder
-    Copyright   :  (c) Andrey Mulik 2021
+    Copyright   :  (c) Andrey Mulik 2022
     License     :  BSD-style
     Maintainer  :  work.a.mulik@gmail.com
     Portability :  non-portable (requires non-portable module)
@@ -29,6 +39,10 @@ import SDP.SafePrelude
 import SDP.Text.Lazy
 import SDP.Linear
 
+#ifdef SDP_LINEAR_EXTRAS
+import qualified GHC.Exts as L
+#endif
+
 import Data.Text.Lazy.Builder
 
 default ()
@@ -43,6 +57,16 @@ instance Nullable Builder where isNull = (== mempty); lzero = mempty
 instance Forceable Builder where force = fromLazyText . toLazyText
 #endif
 
+#ifdef SDP_LINEAR_EXTRAS
+instance L.IsList Builder
+  where
+    type Item Builder = Char
+    
+    toList    = listL
+    fromList  = fromList
+    fromListN = fromListN
+#endif
+
 instance Estimate Builder
   where
     (<==>) = on (<=>) sizeOf
@@ -50,10 +74,10 @@ instance Estimate Builder
 
 instance Bordered Builder Int
   where
+    lower   = const 0
+    upper   = upper . toLazyText
     sizeOf  = sizeOf . toLazyText
     bounds  = bounds . toLazyText
-    upper   = upper . toLazyText
-    lower   = const 0
 #if MIN_VERSION_sdp(0,3,0)
     rebound = take . size
 #endif
@@ -125,6 +149,7 @@ instance IsTextFile Builder
     hGetLine      = fmap fromLazyText . hGetLine
     hPutStrLn hdl = hPutStrLn hdl . toLazyText
     hPutStr   hdl = hPutStr   hdl . toLazyText
+
 
 
 
