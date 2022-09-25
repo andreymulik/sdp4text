@@ -2,7 +2,7 @@
 
 {- |
     Module      :  SDP.Text.Lazy
-    Copyright   :  (c) Andrey Mulik 2020-2021
+    Copyright   :  (c) Andrey Mulik 2020-2022
     License     :  BSD-style
     Maintainer  :  work.a.mulik@gmail.com
     Portability :  non-portable (GHC extensions)
@@ -53,10 +53,15 @@ type LText = Text
 
 {- Nullable, Forceable and Estimate instances. -}
 
-instance Nullable Text where isNull = L.null; lzero = L.empty
+instance Nullable Text
+  where
+    isNull = L.null
+    lzero  = L.empty
 
 #if MIN_VERSION_sdp(0,3,0)
-instance Forceable Text where force = L.fromChunks . map force . L.toChunks
+instance Forceable Text
+  where
+    force = L.fromChunks . map force . L.toChunks
 #endif
 
 instance Estimate Text
@@ -66,20 +71,29 @@ instance Estimate Text
     
     {-# INLINE (<==>) #-}
     xs <==> ys = xs `L.compareLength` L.length ys
+    
+#if MIN_VERSION_sdp(0,3,0)
+    sizeOf = fromEnum . L.length
+#endif
 
 --------------------------------------------------------------------------------
 
-{- Bordered, Linear and Split instances. -}
+{- Bordered instance. -}
 
 instance Bordered Text Int
   where
-    lower    _ = 0
-    upper   ts = sizeOf ts - 1
-    bounds  ts = (0, sizeOf ts - 1)
-    sizeOf     = fromEnum . L.length
+    lower   _ = 0
+    upper  ts = sizeOf ts - 1
+    bounds ts = (0, sizeOf ts - 1)
 #if MIN_VERSION_sdp(0,3,0)
-    rebound    = take . size
+    rebound   = take . size
+#else
+    sizeOf    = fromEnum . L.length
 #endif
+
+--------------------------------------------------------------------------------
+
+{- Linear and Split instances. -}
 
 instance Linear Text Char
   where
@@ -116,12 +130,24 @@ instance Linear Text Char
     concat = L.concat . toList
     filter = L.filter
     
-#if !MIN_VERSION_sdp(0,3,0)
+#if MIN_VERSION_sdp(0,3,0)
+    padL = L.justifyLeft  . fromIntegral
+    padR = L.justifyRight . fromIntegral
+    
+    sfoldl' = L.foldl'
+    sfoldr  = L.foldr
+    sfoldl  = L.foldl
+#else
+    intersperse = L.intersperse
+    
+    o_foldl' = L.foldl'
+    o_foldr  = L.foldr
+    o_foldl  = L.foldl
+    
     force = L.fromChunks . map force . L.toChunks
 #endif
 
     concatMap f = concat . foldr ((:) . f) []
-    intersperse = L.intersperse
     partition   = L.partition
     
     ofoldr f =
@@ -131,36 +157,32 @@ instance Linear Text Char
     ofoldl f base text =
       let go = \ (i, acc) ch -> (i + sizeOf ch, ofoldl (f . (+ i)) acc ch)
       in  snd $ L.foldlChunks go (upper text, base) text
-    
-    o_foldl' = L.foldl'
-    o_foldr  = L.foldr
-    o_foldl  = L.foldl
 #if !MIN_VERSION_sdp(0,3,0)
 instance Split Text Char
   where
+    justifyL = L.justifyLeft  . fromIntegral
+    justifyR = L.justifyRight . fromIntegral
+    chunks   = L.chunksOf . fromIntegral
 #endif
-    take   = L.take     . fromIntegral
-    drop   = L.drop     . fromIntegral
-    keep   = L.takeEnd  . fromIntegral
-    sans   = L.dropEnd  . fromIntegral
-    split  = L.splitAt  . fromIntegral
-    chunks = L.chunksOf . fromIntegral
+    
+    take = L.take    . fromIntegral
+    drop = L.drop    . fromIntegral
+    keep = L.takeEnd . fromIntegral
+    sans = L.dropEnd . fromIntegral
+    
+    dropWhile = L.dropWhile
+    dropEnd   = L.dropWhileEnd
     
     replaceBy = L.replace
     splitsOn  = L.splitOn
     splitsBy  = L.split
-    
-    justifyL = L.justifyLeft  . fromIntegral
-    justifyR = L.justifyRight . fromIntegral
     
     isPrefixOf = L.isPrefixOf
     isSuffixOf = L.isSuffixOf
     isInfixOf  = L.isInfixOf
     
     takeWhile = L.takeWhile
-    dropWhile = L.dropWhile
     takeEnd   = L.takeWhileEnd
-    dropEnd   = L.dropWhileEnd
 
 --------------------------------------------------------------------------------
 
@@ -210,12 +232,12 @@ instance Freeze (ST s) (STUblist s Char) Text
     unsafeFreeze = fmap L.fromChunks . mapM unsafeFreeze . toChunks
     freeze       = fmap L.fromChunks . mapM freeze       . toChunks
 
-instance (MonadIO io) => Thaw io Text (MIOUblist io Char)
+instance MonadIO io => Thaw io Text (MIOUblist io Char)
   where
     unsafeThaw = fromChunksM <=< mapM unsafeThaw . L.toChunks
     thaw       = fromChunksM <=< mapM thaw       . L.toChunks
 
-instance (MonadIO io) => Freeze io (MIOUblist io Char) Text
+instance MonadIO io => Freeze io (MIOUblist io Char) Text
   where
     unsafeFreeze = fmap L.fromChunks . mapM unsafeFreeze . toChunks
     freeze       = fmap L.fromChunks . mapM freeze       . toChunks
@@ -242,4 +264,7 @@ done =  freeze
 
 pfailEx :: String -> a
 pfailEx =  throw . PatternMatchFail . showString "in SDP.Text.Lazy."
+
+
+
 

@@ -3,7 +3,7 @@
 
 {- |
     Module      :  SDP.Text
-    Copyright   :  (c) Andrey Mulik 2020-2021
+    Copyright   :  (c) Andrey Mulik 2020-2022
     License     :  BSD-style
     Maintainer  :  work.a.mulik@gmail.com
     Portability :  non-portable (GHC only)
@@ -72,10 +72,15 @@ type SText = Text
 
 {- Nullable, Forceable and Estimate instances. -}
 
-instance Nullable Text where isNull = T.null; lzero = T.empty
+instance Nullable Text
+  where
+    isNull = T.null
+    lzero  = T.empty
 
 #if MIN_VERSION_sdp(0,3,0)
-instance Forceable Text where force = T.copy
+instance Forceable Text
+  where
+    force = T.copy
 #endif
 
 instance Estimate Text
@@ -85,20 +90,29 @@ instance Estimate Text
     
     {-# INLINE (<==>) #-}
     xs <==> ys = xs `T.compareLength` sizeOf ys
+    
+#if MIN_VERSION_sdp(0,3,0)
+    sizeOf = T.length
+#endif
 
 --------------------------------------------------------------------------------
 
-{- Bordered, Linear and Split instances. -}
+{- Bordered instance. -}
 
 instance Bordered Text Int
   where
-    lower    _ = 0
-    sizeOf     = T.length
-    upper   ts = sizeOf ts - 1
-    bounds  ts = (0, sizeOf ts - 1)
+    lower   _ = 0
+    upper  ts = sizeOf ts - 1
+    bounds ts = (0, sizeOf ts - 1)
 #if MIN_VERSION_sdp(0,3,0)
-    rebound    = T.take . size
+    rebound   = T.take . size
+#else
+    sizeOf    = T.length
 #endif
+
+--------------------------------------------------------------------------------
+
+{- Linear and Split instances. -}
 
 instance Linear Text Char
   where
@@ -134,12 +148,21 @@ instance Linear Text Char
     concat = T.concat . toList
     filter = T.filter
     
-#if !MIN_VERSION_sdp(0,3,0)
-    force = T.copy
+#if MIN_VERSION_sdp(0,3,0)
+    sfoldr = T.foldr
+    sfoldl = T.foldl
+    
+    padL = T.justifyLeft
+    padR = T.justifyRight
+#else
+    force   = T.copy
+    o_foldr = T.foldr
+    o_foldl = T.foldl
+    
+    intersperse = T.intersperse
 #endif
 
     concatMap f = concat . foldr ((:) . f) []
-    intersperse = T.intersperse
     partition   = T.partition
     
     ofoldr f base = fold' . stream
@@ -159,13 +182,17 @@ instance Linear Text Char
               Yield x s' -> go (f i base x) (i + 1) s'
               Skip    s' -> go base i s'
               Done       -> base
-    
-    o_foldr = T.foldr
-    o_foldl = T.foldl
 #if !MIN_VERSION_sdp(0,3,0)
 instance Split Text Char
   where
+    chunks   = T.chunksOf
+    justifyL = T.justifyLeft
+    justifyR = T.justifyRight
 #endif
+    
+    dropEnd   = T.dropWhileEnd
+    dropWhile = T.dropWhile
+    
     take  = T.take
     drop  = T.drop
     keep  = T.takeEnd
@@ -176,20 +203,13 @@ instance Split Text Char
     splitsOn = T.splitOn
     
     replaceBy = T.replace
-    chunks    = T.chunksOf
     
     isPrefixOf = T.isPrefixOf
     isSuffixOf = T.isSuffixOf
     isInfixOf  = T.isInfixOf
     
-    justifyL = T.justifyLeft
-    justifyR = T.justifyRight
-    
     takeWhile = T.takeWhile
-    dropWhile = T.dropWhile
-    
-    takeEnd = T.takeWhileEnd
-    dropEnd = T.dropWhileEnd
+    takeEnd   = T.takeWhileEnd
 
 --------------------------------------------------------------------------------
 
@@ -234,12 +254,12 @@ instance Freeze (ST s) (STBytes# s Char) Text
     unsafeFreeze = zip#
     freeze       = copied >=> unsafeFreeze
 
-instance (MonadIO io) => Thaw io Text (MIOBytes# io Char)
+instance MonadIO io => Thaw io Text (MIOBytes# io Char)
   where
     unsafeThaw = pack' . unsafeThaw
     thaw       = pack' . thaw
 
-instance (MonadIO io) => Freeze io (MIOBytes# io Char) Text
+instance MonadIO io => Freeze io (MIOBytes# io Char) Text
   where
     unsafeFreeze (MIOBytes# es) = stToMIO (unsafeFreeze es)
     freeze       (MIOBytes# es) = stToMIO (freeze es)
@@ -312,7 +332,7 @@ word16ToWord# :: Word# -> Word#
 word16ToWord# =  \ x# -> x#
 #endif
 
-pack' :: (MonadIO io) => ST RealWorld (STBytes# RealWorld e) -> io (MIOBytes# io e)
+pack' :: MonadIO io => ST RealWorld (STBytes# RealWorld e) -> io (MIOBytes# io e)
 pack' =  stToMIO . coerce
 
 -- Pack 'Text' as SBytes# without representation changes.

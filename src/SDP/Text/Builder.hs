@@ -51,10 +51,15 @@ default ()
 
 {- Nullable, Forceable and Linear instances. -}
 
-instance Nullable Builder where isNull = (== mempty); lzero = mempty
+instance Nullable Builder
+  where
+    isNull = (== mempty)
+    lzero  = mempty
 
 #if MIN_VERSION_sdp(0,3,0)
-instance Forceable Builder where force = fromLazyText . toLazyText
+instance Forceable Builder
+  where
+    force = fromLazyText . toLazyText
 #endif
 
 #ifdef SDP_LINEAR_EXTRAS
@@ -71,15 +76,20 @@ instance Estimate Builder
   where
     (<==>) = on (<=>) sizeOf
     (<.=>) = (<=>) . sizeOf
+    
+#if MIN_VERSION_sdp(0,3,0)
+    sizeOf = sizeOf . toLazyText
+#endif
 
 instance Bordered Builder Int
   where
     lower   = const 0
     upper   = upper . toLazyText
-    sizeOf  = sizeOf . toLazyText
     bounds  = bounds . toLazyText
 #if MIN_VERSION_sdp(0,3,0)
     rebound = take . size
+#else
+    sizeOf  = sizeOf . toLazyText
 #endif
 
 instance Linear Builder Char
@@ -94,8 +104,21 @@ instance Linear Builder Char
     toLast es e = es <> singleton e
     
 #if !MIN_VERSION_sdp(0,3,0)
+    intersperse e = fromLazyText . intersperse e . toLazyText
+    
     force = fromLazyText . toLazyText
+    
+    o_foldr  f base = o_foldr  f base . toLazyText
+    o_foldl  f base = o_foldl  f base . toLazyText
+    o_foldr' f base = o_foldr' f base . toLazyText
+    o_foldl' f base = o_foldl' f base . toLazyText
+#else
+    sfoldr  f base = sfoldr  f base . toLazyText
+    sfoldl  f base = sfoldl  f base . toLazyText
+    sfoldr' f base = sfoldr' f base . toLazyText
+    sfoldl' f base = sfoldl' f base . toLazyText
 #endif
+    
     listL = listL . toLazyText
     listR = listR . toLazyText
     (++)  = (<>)
@@ -111,7 +134,6 @@ instance Linear Builder Char
     last = last . toLazyText
     
     partition   f = both fromLazyText . partition f . toLazyText
-    intersperse e = fromLazyText . intersperse e . toLazyText
     filter      p = fromLazyText . filter p . toLazyText
     
     nubBy f = fromLazyText . nubBy f . toLazyText
@@ -122,10 +144,6 @@ instance Linear Builder Char
     ofoldr' f base = ofoldr' f base . toLazyText
     ofoldl' f base = ofoldl' f base . toLazyText
     
-    o_foldr  f base = o_foldr  f base . toLazyText
-    o_foldl  f base = o_foldl  f base . toLazyText
-    o_foldr' f base = o_foldr' f base . toLazyText
-    o_foldl' f base = o_foldl' f base . toLazyText
 #if !MIN_VERSION_sdp(0,3,0)
 instance Split Builder Char
   where
@@ -149,7 +167,4 @@ instance IsTextFile Builder
     hGetLine      = fmap fromLazyText . hGetLine
     hPutStrLn hdl = hPutStrLn hdl . toLazyText
     hPutStr   hdl = hPutStr   hdl . toLazyText
-
-
-
 
