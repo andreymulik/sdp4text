@@ -83,13 +83,13 @@ instance Estimate Builder
 
 instance Bordered Builder Int
   where
-    lower   = const 0
-    upper   = upper . toLazyText
-    bounds  = bounds . toLazyText
+    lower  = const 0
+    upper  = upper . toLazyText
+    bounds = bounds . toLazyText
 #if MIN_VERSION_sdp(0,3,0)
-    rebound = take . size
+    viewOf = take . size
 #else
-    sizeOf  = sizeOf . toLazyText
+    sizeOf = sizeOf . toLazyText
 #endif
 
 instance Linear Builder Char

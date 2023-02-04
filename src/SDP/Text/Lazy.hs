@@ -85,10 +85,11 @@ instance Bordered Text Int
     lower   _ = 0
     upper  ts = sizeOf ts - 1
     bounds ts = (0, sizeOf ts - 1)
+    
 #if MIN_VERSION_sdp(0,3,0)
-    rebound   = take . size
+    viewOf = take . size
 #else
-    sizeOf    = fromEnum . L.length
+    sizeOf = fromEnum . L.length
 #endif
 
 --------------------------------------------------------------------------------
@@ -157,6 +158,7 @@ instance Linear Text Char
     ofoldl f base text =
       let go = \ (i, acc) ch -> (i + sizeOf ch, ofoldl (f . (+ i)) acc ch)
       in  snd $ L.foldlChunks go (upper text, base) text
+
 #if !MIN_VERSION_sdp(0,3,0)
 instance Split Text Char
   where
@@ -200,8 +202,16 @@ instance Map Text Int Char
         l = fst $ minimumBy cmpfst ascs
         u = fst $ maximumBy cmpfst ascs
     
+#if MIN_VERSION_sdp(0,3,0)
+    Z  // ascs = toMap ascs
+    es // ascs = runST $ do
+      es' <- thaw es
+      overwrite es' ascs
+      done es'
+#else
     Z  // ascs = toMap ascs
     es // ascs = runST $ thaw es >>= (`overwrite` ascs) >>= done
+#endif
     
     (.!) es = L.index es . fromIntegral
     

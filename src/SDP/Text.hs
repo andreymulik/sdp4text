@@ -104,10 +104,11 @@ instance Bordered Text Int
     lower   _ = 0
     upper  ts = sizeOf ts - 1
     bounds ts = (0, sizeOf ts - 1)
+    
 #if MIN_VERSION_sdp(0,3,0)
-    rebound   = T.take . size
+    viewOf = T.take . size
 #else
-    sizeOf    = T.length
+    sizeOf = T.length
 #endif
 
 --------------------------------------------------------------------------------
@@ -227,8 +228,16 @@ instance Map Text Int Char
         l = fst $ minimumBy cmpfst ascs
         u = fst $ maximumBy cmpfst ascs
     
+#if MIN_VERSION_sdp(0,3,0)
+    Z  // ascs = toMap ascs
+    es // ascs = runST $ do
+      es' <- thaw es
+      overwrite es' ascs
+      done es'
+#else
     Z  // ascs = toMap ascs
     es // ascs = runST $ thaw es >>= (`overwrite` ascs) >>= done
+#endif
     
     (.!) = T.index
     
@@ -326,12 +335,6 @@ write# es c i = if n < 0x10000
 
 --------------------------------------------------------------------------------
 
-#if !MIN_VERSION_base(4,16,0)
-{-# INLINE word16ToWord# #-}
-word16ToWord# :: Word# -> Word#
-word16ToWord# =  \ x# -> x#
-#endif
-
 pack' :: MonadIO io => ST RealWorld (STBytes# RealWorld e) -> io (MIOBytes# io e)
 pack' =  stToMIO . coerce
 
@@ -344,6 +347,14 @@ textRepack (Text (Array text#) o n) = drop o (packSBytes# n text#)
 done :: STBytes# s Char -> ST s Text
 done =  unsafeFreeze
 
+--------------------------------------------------------------------------------
+
+#if !MIN_VERSION_base(4,16,0)
+{-# INLINE word16ToWord# #-}
+word16ToWord# :: Word# -> Word#
+word16ToWord# =  \ x# -> x#
+#endif
+
 {-# INLINE u16c #-}
 u16c :: Word16 -> Word16 -> Char
 u16c (W16# a#) (W16# b#) = C# (chr# (upper# +# lower# +# 0x10000#))
@@ -355,6 +366,10 @@ u16c (W16# a#) (W16# b#) = C# (chr# (upper# +# lower# +# 0x10000#))
 w2c :: Word16 -> Char
 w2c (W16# w#) = C# (chr# (word2Int# (word16ToWord# w#)))
 
+--------------------------------------------------------------------------------
+
 pfailEx :: String -> a
 pfailEx =  throw . PatternMatchFail . showString "in SDP.Text."
+
+
 
